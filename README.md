@@ -1,5 +1,6 @@
 # Установка 
 
+! Из текущей директории !
 echo "alias tun='sudo bun $(pwd)/index.ts'" >> ~/.bashrc
 source ~/.bashrc
 

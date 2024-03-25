@@ -3,7 +3,8 @@ import os from "os";
 
 const stdin = async (
   prompt_text: string,
-  callback: (line: string) => string | undefined
+  callback: (line: string) => string | undefined,
+  defaultValue?: string
 ): Promise<string> => {
   while (true) {
     const value = (prompt(prompt_text) ?? "")
@@ -11,7 +12,7 @@ const stdin = async (
       .replaceAll(" ", "_")
       .replaceAll('"', "");
 
-    const result = callback(value);
+    const result = callback(value) || defaultValue;
     if (result) return result;
 
     console.log(`Некорректный ввод!`);
@@ -232,16 +233,6 @@ export class Tmux {
   static async add(): Promise<void> {
     const hosts = Tmux.hosts();
 
-    const echo2 = await $`whoami`;
-
-    const echo = await $`echo "\n\nHost kaidstor\n\tHostName 109.68.212.83\n\tIdentityFile ~/.ssh/easy\n\tUser root\n" >>" ${os.homedir()}/.ssh/config`;
-
-    // console.log(
-    //   success
-    //     ? "Добавлена запись в ~/.ssh/config"
-    //     : "Ошибка добавления записи в ~/.ssh/config"
-    // );
-
     const { text } = Tmux.command(["ls", `${os.homedir()}/.ssh`]);
     const keys = text.split("\n").filter((p) => p.trim() && !p.includes("."));
 
@@ -261,14 +252,16 @@ export class Tmux {
       return keys[+key - 1];
     });
 
-    const user = await stdin("\nВыберите ключ: ", (key) => key);
+    const ip = await stdin("\nIP сервера: ", (ip) => ip);
+    const user = await stdin("\nПользователь (root ): ", (key) => key, "root");
 
-    console.log(host!);
-    console.log(key!);
+    const content = `\n\nHost ${host}\n\tHostName ${ip}\n\tIdentityFile ~/.ssh/${key}\n\tUser ${user}\n`;
 
-    const result = $`echo "\n\nHost kaidstor
-    HostName 109.68.212.83
-    IdentityFile ~/.ssh/easy
-    User root\n" >> ~/.bashrc`;
+    const echo =
+      await $`echo "${content}" >> ${os.homedir()}/.ssh/config`.quiet();
+
+    console.log(
+      echo.exitCode == 0 ? "Конфиг добавлен" : "Ошибка добавления конфига"
+    );
   }
 }
